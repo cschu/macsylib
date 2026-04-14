@@ -54,7 +54,7 @@ class HMMReport(metaclass=abc.ABCMeta):
     or not ("unordered" db_type).
     """
 
-    def __init__(self, gene: CoreGene, hmmer_output: str, cfg: Config) -> None:
+    def __init__(self, gene: CoreGene, hmmer_output, cfg: Config) -> None:
         """
         :param gene: the gene corresponding to the profile search reported here
         :param hmmer_output: The path to the raw Hmmer output file
@@ -96,15 +96,18 @@ class HMMReport(metaclass=abc.ABCMeta):
             my_db = self._build_my_db(self._hmmer_raw_out)
             self._fill_my_db(my_db)
 
-            with open(self._hmmer_raw_out, 'r') as hmm_out:
+            # with open(self._hmmer_raw_out, 'r') as hmm_out:
+            for hmm_hits in self._hmmer_raw_out:
+
                 i_evalue_sel = self.cfg.i_evalue_sel()
                 coverage_threshold = self.cfg.coverage_profile()
                 gene_profile_lg = len(self.gene.profile)
-                hmm_hits = (x[1] for x in groupby(hmm_out, self._hit_start))
+                # hmm_hits = (x[1] for x in groupby(hmm_out, self._hit_start))
                 # drop summary
-                next(hmm_hits)
+                # next(hmm_hits)
                 for hmm_hit in hmm_hits:
-                    hit_id = self._parse_hmm_header(hmm_hit)
+                    # hit_id = self._parse_hmm_header(hmm_hit)
+                    hit_id = hmm_hit.name
                     try:
                         seq_lg, position_hit = my_db[hit_id]
                     except TypeError as err:
@@ -114,10 +117,33 @@ class HMMReport(metaclass=abc.ABCMeta):
                             raise MacsylibError(msg) from err
                     replicon_name = self._get_replicon_name(hit_id)
 
-                    body = next(hmm_hits)
-                    c_hit = self._parse_hmm_body(hit_id, gene_profile_lg, seq_lg, coverage_threshold,
-                                                 replicon_name, position_hit, i_evalue_sel, body)
-                    self.hits += c_hit
+                    for domain in hmm_hit.domains:
+                        if domain.i_evalue <= i_evalue_sel:
+                            cov_profile = (domain.alignment.hmm_to - domain.alignment.hmm_from + 1) / gene_profile_lg
+                            begin, end = domain.alignment.target_from, domain.alignment.target_to
+                            cov_gene = (end - begin + 1) / seq_lg
+                            if cov_profile >= coverage_threshold:
+                                self.hits.append(
+                                    CoreHit(
+                                        self.gene,
+                                        hit_id,
+                                        seq_lg,
+                                        replicon_name,
+                                        position_hit,
+                                        domain.i_evalue,
+                                        domain.score,
+                                        cov_profile,
+                                        cov_gene,
+                                        begin,
+                                        end,
+                                    )
+                                )
+
+                    # body = next(hmm_hits)
+                    # c_hit = self._parse_hmm_body(hit_id, gene_profile_lg, seq_lg, coverage_threshold,
+                    #                              replicon_name, position_hit, i_evalue_sel, body)
+
+                    # self.hits += c_hit
             self.hits.sort()
             return self.hits
 
@@ -172,7 +198,7 @@ class HMMReport(metaclass=abc.ABCMeta):
         return line.startswith(">>")
 
 
-    def _build_my_db(self, hmm_output: str) -> dict[str: None]:
+    def _build_my_db(self, hmm_output) -> dict[str: None]:
         """
         Build the keys of a dictionary object to store sequence identifiers of hits.
 
@@ -180,12 +206,17 @@ class HMMReport(metaclass=abc.ABCMeta):
         :type hmm_output: string
         :return: a dictionary containing a key for each sequence id of the hits
         """
-        db = {}
-        with open(hmm_output) as hmm_file:
-            hits = (x[1] for x in groupby(hmm_file, self._hit_start) if x[0])
-            for hit in hits:
-                db[self._parse_hmm_header(hit)] = None
-        return db
+        
+        return {
+            hit.name: None for hits in hmm_output for hit in hits
+        }
+
+       
+        # with open(hmm_output) as hmm_file:
+        #     hits = (x[1] for x in groupby(hmm_file, self._hit_start) if x[0])
+        #     for hit in hits:
+        #         db[self._parse_hmm_header(hit)] = None
+        # return db
 
 
     def _fill_my_db(self, db: dict[str: tuple[int, int]]) -> None:
