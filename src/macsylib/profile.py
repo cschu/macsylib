@@ -182,7 +182,7 @@ class Profile:
                 alphabet=pyhmmer.easel.Alphabet.amino(),
             ) as seq_file:
                 protein_seqs = list(seq_file)
-            with pyhmmer.plan7.HMMFile(args.recombinase_hmms) as hmm_file:
+            with pyhmmer.plan7.HMMFile(self.path) as hmm_file:
 
                 pipeline_args = {}
                 if not self.cfg.cut_ga():
