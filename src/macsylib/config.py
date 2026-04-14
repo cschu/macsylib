@@ -86,6 +86,7 @@ class MacsyDefaults(dict):
         self.cut_ga = kwargs.get('cut_ga', True)
         self.db_type = kwargs.get('db_type', None)
         # self.hmmer = kwargs.get('hmmer', shutil.which('hmmsearch'))
+        self.hmmer = "NOT_REQUIRED"
         self.i_evalue_sel = kwargs.get('i_evalue_sel', 0.001)
         self.idx = kwargs.get('idx', False)
         self.index_dir = kwargs.get('index_dir', None)
