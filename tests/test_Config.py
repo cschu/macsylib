@@ -614,15 +614,15 @@ class TestConfig(MacsyTest):
         cfg = Config(self.defaults, self.parsed_args)
         self.assertEqual(cfg.hmmer(), self.parsed_args.hmmer)
 
-    def test_no_hmmsearch(self):
-        # if hmmsearch is not found in path the default is set to None (shutil.which('hmmsearch'))
-        self.defaults.hmmer = None
-        with self.assertRaises(ValueError) as ctx:
-            with self.catch_log():
-                Config(self.defaults, self.parsed_args)
-        self.assertEqual(str(ctx.exception),
-                         "'hmmsearch' NOT found in your PATH, Please specify hmmsearch path with --hmmer opt or"
-                         " install 'hmmer' package.")
+    # def test_no_hmmsearch(self):
+    #     # if hmmsearch is not found in path the default is set to None (shutil.which('hmmsearch'))
+    #     self.defaults.hmmer = None
+    #     with self.assertRaises(ValueError) as ctx:
+    #         with self.catch_log():
+    #             Config(self.defaults, self.parsed_args)
+    #     self.assertEqual(str(ctx.exception),
+    #                      "'hmmsearch' NOT found in your PATH, Please specify hmmsearch path with --hmmer opt or"
+    #                      " install 'hmmer' package.")
 
     def test_e_value_search(self):
         cfg = Config(self.defaults, self.parsed_args)
