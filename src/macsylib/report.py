@@ -42,7 +42,10 @@ from .error import MacsylibError
 from .gene import CoreGene
 from .config import Config
 
+from pyhmmer.plan7 import TopHits
+
 _log = logging.getLogger(__name__)
+
 
 
 class HMMReport(metaclass=abc.ABCMeta):
@@ -54,7 +57,7 @@ class HMMReport(metaclass=abc.ABCMeta):
     or not ("unordered" db_type).
     """
 
-    def __init__(self, gene: CoreGene, hmmer_output, cfg: Config) -> None:
+    def __init__(self, gene: CoreGene, hmmer_output: list[TopHits] | None, cfg: Config) -> None:
         """
         :param gene: the gene corresponding to the profile search reported here
         :param hmmer_output: The path to the raw Hmmer output file
