@@ -96,17 +96,12 @@ class HMMReport(metaclass=abc.ABCMeta):
             my_db = self._build_my_db(self._hmmer_raw_out)
             self._fill_my_db(my_db)
 
-            # with open(self._hmmer_raw_out, 'r') as hmm_out:
             for hmm_hits in self._hmmer_raw_out:
 
                 i_evalue_sel = self.cfg.i_evalue_sel()
                 coverage_threshold = self.cfg.coverage_profile()
                 gene_profile_lg = len(self.gene.profile)
-                # hmm_hits = (x[1] for x in groupby(hmm_out, self._hit_start))
-                # drop summary
-                # next(hmm_hits)
                 for hmm_hit in hmm_hits:
-                    # hit_id = self._parse_hmm_header(hmm_hit)
                     hit_id = hmm_hit.name
                     try:
                         seq_lg, position_hit = my_db[hit_id]
@@ -139,11 +134,6 @@ class HMMReport(metaclass=abc.ABCMeta):
                                     )
                                 )
 
-                    # body = next(hmm_hits)
-                    # c_hit = self._parse_hmm_body(hit_id, gene_profile_lg, seq_lg, coverage_threshold,
-                    #                              replicon_name, position_hit, i_evalue_sel, body)
-
-                    # self.hits += c_hit
             self.hits.sort()
             return self.hits
 
@@ -210,13 +200,6 @@ class HMMReport(metaclass=abc.ABCMeta):
         return {
             hit.name: None for hits in hmm_output for hit in hits
         }
-
-       
-        # with open(hmm_output) as hmm_file:
-        #     hits = (x[1] for x in groupby(hmm_file, self._hit_start) if x[0])
-        #     for hit in hits:
-        #         db[self._parse_hmm_header(hit)] = None
-        # return db
 
 
     def _fill_my_db(self, db: dict[str: tuple[int, int]]) -> None:
