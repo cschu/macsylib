@@ -34,6 +34,8 @@ import logging
 from subprocess import Popen
 from threading import Lock
 
+import pyhmmer
+
 from .report import GembaseHMMReport, GeneralHMMReport, OrderedHMMReport, HMMReport
 from .error import MacsylibError
 from .utils import open_compressed
@@ -173,60 +175,62 @@ class Profile:
             # the other calls return directly this report
             if self._report is not None:
                 return self._report
-            hmmer_dir = os.path.join(self.cfg.working_dir(), self.cfg.hmmer_dir())
-            if not os.path.exists(hmmer_dir):
-                os.mkdir(hmmer_dir)
-            output_path = os.path.join(hmmer_dir,  self.gene.name + self.cfg.res_search_suffix())
-            err_path = os.path.join(hmmer_dir,
-                                    self.gene.name + os.path.splitext(self.cfg.res_search_suffix())[0] + ".err")
 
-            with open(err_path, 'w') as err_file:
+            try:
+                with pyhmmer.easel.SequenceFile(
+                    self.cfg.sequence_db(),
+                    digital=True,
+                    alphabet=pyhmmer.easel.Alphabet.amino(),
+                ) as seq_file:
+                    protein_seqs = list(seq_file)
+            except Exception as err:
+                msg = f"Failed accessing sequence db: {self.cfg.sequence_db()}"
+                _log.critical(msg, exc_info=True)
+                raise err
+
+            try:
+                hmm_file = pyhmmer.plan7.HMMFile(self.path)
+            except Exception as err:
+                msg = f"Failed accessing hmm file: {self.path}"
+                _log.critical(msg, exc_info=True)
+                raise err
+
+            with hmm_file:
+
+                pipeline_args = {}
                 if not self.cfg.cut_ga():
-                    hmmer_threshold = f"-E {self.cfg.e_value_search():f}"
+                    pipeline_args["E"] = float(self.cfg.e_value_search())  # f"{self.cfg.e_value_search():f}"
                 elif self.cfg.cut_ga() and self.ga_threshold:
-                    hmmer_threshold = "--cut_ga"
+                    pipeline_args["bit_cutoffs"] = "gathering"
                 else:
                     # cut_ga is True set but there is not self.ga_threshold:
-                    hmmer_threshold = f"-E {self.cfg.e_value_search():f}"
+                    pipeline_args["E"] = hmmer_threshold = float(self.cfg.e_value_search())  # f"{self.cfg.e_value_search():f}"
                     _log.warning(f"GA bit thresholds unavailable on profile {self.gene.name}. "
-                                 f"Switch to e-value threshold ({hmmer_threshold})")
+                                f"Switch to e-value threshold ({hmmer_threshold})")
 
-                command = f'"{self.cfg.hmmer()}" --cpu {cpu} -o "{output_path}" {hmmer_threshold} ' \
-                          f'"{self.path}" "{self.cfg.sequence_db()}" '
-                _log.debug(f"{self.gene.name} Hmmer command line : {command}")
                 try:
-                    hmmer = Popen(command,
-                                  shell=True,
-                                  stdout=None,
-                                  stdin=None,
-                                  stderr=err_file,
-                                  close_fds=False,
-                                  )
+                    hmm_hits = list(
+                        pyhmmer.hmmsearch(
+                            hmm_file,
+                            protein_seqs,
+                            cpus=cpu,
+                            backend="multiprocessing",
+                            **pipeline_args,
+                        )
+                    )
+
                 except Exception as err:
-                    msg = f"Hmmer execution failed: command = {command} : {err}"
+                    msg = f"pyhmmer execution failed: {err}"
                     _log.critical(msg, exc_info=True)
                     raise err
-                hmmer.wait()
 
-            if hmmer.returncode != 0:
-                if hmmer.returncode == -15:
-                    msg = f"The Hmmer execution was aborted: command = {command} : " \
-                          f"return code = {hmmer.returncode:d} check {err_path}"
-                    _log.critical(msg)
-                    return
-                else:
-                    msg = f"an error occurred during Hmmer execution: command = {command} : " \
-                          f"return code = {hmmer.returncode:d} check {err_path}"
-                    _log.debug(msg, exc_info=True)
-                    _log.critical(msg)
-                    raise RuntimeError(msg)
-            self.hmm_raw_output = output_path
+            self.hmm_raw_output = hmm_hits
             db_type = self.cfg.db_type()
             if db_type == 'gembase':
-                report = GembaseHMMReport(self.gene, output_path, self.cfg)
+                report = GembaseHMMReport(self.gene, hmm_hits, self.cfg)
             elif db_type == 'ordered_replicon':
-                report = OrderedHMMReport(self.gene, output_path, self.cfg)
+                report = OrderedHMMReport(self.gene, hmm_hits, self.cfg)
             else:
-                report = GeneralHMMReport(self.gene, output_path, self.cfg)
+                report = GeneralHMMReport(self.gene, hmm_hits, self.cfg)
             self._report = report
             return report

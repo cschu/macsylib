@@ -245,11 +245,11 @@ class Config:
         # by the values provided by previous-run, project conf, the users on the commandline
         self._options.update(self._tmp_opts)
         # check that hmmsearch exists
-        if not self.hmmer():
-            msg = "'hmmsearch' NOT found in your PATH, Please specify hmmsearch path with --hmmer opt " \
-                  "or install 'hmmer' package."
-            _log.critical(msg)
-            raise ValueError(msg)
+        # if not self.hmmer():
+        #     msg = "'hmmsearch' NOT found in your PATH, Please specify hmmsearch path with --hmmer opt " \
+        #           "or install 'hmmer' package."
+        #     _log.critical(msg)
+        #     raise ValueError(msg)
 
 
     def _set_options(self, options: dict[str: Any]) -> None:

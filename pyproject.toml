@@ -41,6 +41,7 @@ dependencies = [
   "pandas>=1.03",
   "colorama>=0.4.4",
   "certifi",
+  "pyhmmer~=0.12.0",
 ]
 
 [project.optional-dependencies]
