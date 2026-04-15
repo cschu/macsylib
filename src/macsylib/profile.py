@@ -199,12 +199,12 @@ class Profile:
 
                 pipeline_args = {}
                 if not self.cfg.cut_ga():
-                    pipeline_args["E"] = f"{self.cfg.e_value_search():f}"
+                    pipeline_args["E"] = float(self.cfg.e_value_search())  # f"{self.cfg.e_value_search():f}"
                 elif self.cfg.cut_ga() and self.ga_threshold:
                     pipeline_args["bit_cutoffs"] = "gathering"
                 else:
                     # cut_ga is True set but there is not self.ga_threshold:
-                    pipeline_args["E"] = hmmer_threshold = f"{self.cfg.e_value_search():f}"
+                    pipeline_args["E"] = hmmer_threshold = float(self.cfg.e_value_search()). # f"{self.cfg.e_value_search():f}"
                     _log.warning(f"GA bit thresholds unavailable on profile {self.gene.name}. "
                                 f"Switch to e-value threshold ({hmmer_threshold})")
 
