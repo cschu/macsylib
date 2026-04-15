@@ -142,7 +142,7 @@ class HMMReport(metaclass=abc.ABCMeta):
         """
         :return: string representation of this report
         """
-        rep = f"""# gene: {self.gene.name} extract from {self._hmmer_raw_out} hmm output
+        rep = f"""# gene: {self.gene.name} extracted from {self._hmmer_raw_out} hmm output
 # profile length= {len(self.gene.profile):d}
 # i_evalue threshold= {self.cfg.i_evalue_sel():.3f}
 # coverage threshold= {self.cfg.coverage_profile():.3f}
